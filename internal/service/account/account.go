@@ -23,6 +23,10 @@ func (self *Service) GetAccountsByUserID(ctx context.Context, req *models.GetAcc
 	self.log.Info("---GetAllAccounts--->", logger.Any("req", req))
 
 	resp, err = self.strg.Account().GetAccountsByUserID(ctx, req)
+	if err != nil {
+		self.log.Error("---GetAllAccounts--->", logger.Any("err", err))
+		return nil, err
+	}
 
 	return
 }
@@ -31,6 +35,10 @@ func (s *Service) GetAccountByID(ctx context.Context, req *models.GetAccountByID
 	s.log.Info("---GetAccountByID--->", logger.Any("req", req))
 
 	resp, err = s.strg.Account().GetAccountByID(ctx, req)
+	if err != nil {
+		s.log.Error("---GetAccountByID--->", logger.Any("err", err))
+		return nil, err
+	}
 
 	return
 }

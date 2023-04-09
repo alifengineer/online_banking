@@ -10,7 +10,7 @@ import (
 
 // Transfer transfers the specified amount from one account to another
 func (s *Service) Transfer(ctx context.Context, req *models.TransferRequest) error {
-
+	s.log.Info("---Transfer--->", logger.Any("req", req))
 	// Begin a database transaction for the transfer
 	tx, err := s.strg.TxRepo().BeginTx(ctx)
 	if err != nil {
@@ -80,7 +80,7 @@ func (s *Service) Transfer(ctx context.Context, req *models.TransferRequest) err
 
 // WithDrawal the specified amount from one account to another
 func (s *Service) WithDrawal(ctx context.Context, req *models.WithDrawalRequest) error {
-
+	s.log.Info("---WithDrawal---", logger.Any("req", req))
 	// Begin a database transaction for the transfer
 	tx, err := s.strg.TxRepo().BeginTx(ctx)
 	if err != nil {
@@ -183,10 +183,12 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 
 // Deposit the specified amount to one account
 func (s *Service) Deposit(ctx context.Context, req *models.DepositRequest) error {
+	s.log.Info("---Deposit--->", logger.Any("req", req))
 
 	// Begin a database transaction for the transfer
 	tx, err := s.strg.TxRepo().BeginTx(ctx)
 	if err != nil {
+		s.log.Error("---Deposit->BeginTx--->", logger.Error(err))
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
@@ -195,6 +197,7 @@ func (s *Service) Deposit(ctx context.Context, req *models.DepositRequest) error
 		ID: req.AccountID,
 	})
 	if err != nil {
+		s.log.Error("---Deposit->GetAccountByID--->", logger.Error(err))
 		return fmt.Errorf("failed to get from account: %w", err)
 	}
 
@@ -210,12 +213,14 @@ func (s *Service) Deposit(ctx context.Context, req *models.DepositRequest) error
 	err = s.strg.TxRepo().CreateTransaction(ctx, tx, creditTx)
 	if err != nil {
 		_ = tx.Rollback()
+		s.log.Error("---Deposit->CreateTransaction--->", logger.Error(err))
 		return fmt.Errorf("failed to create debit transaction: %w", err)
 	}
 
 	// Commit the transaction
 	err = tx.Commit()
 	if err != nil {
+		s.log.Error("---Deposit->Commit--->", logger.Error(err))
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 

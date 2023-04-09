@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/dilmurodov/online_banking/pkg/models"
+	"github.com/pkg/errors"
 )
 
 type accountRepo struct {
@@ -34,7 +35,7 @@ func (r *accountRepo) CreateAccount(ctx context.Context, account *models.CreateA
 	)
 	err = row.Scan(&accountID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to scan account id")
 	}
 	return &models.Account{
 		ID:      accountID,
@@ -68,7 +69,7 @@ func (r *accountRepo) GetAccountByID(ctx context.Context, req *models.GetAccount
 		&updatedAt,
 	)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to scan account")
 	}
 	account.CreatedAt = createdAt.String
 	account.UpdatedAt = updatedAt.String
@@ -91,7 +92,7 @@ func (r *accountRepo) GetAccountsByUserID(ctx context.Context, req *models.GetAc
 			count(1) OVER() AS count
 		FROM accounts WHERE user_id=$1 AND deleted_at = 0`, req.UserID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to query accounts by user id")
 	}
 	defer rows.Close()
 
@@ -111,7 +112,7 @@ func (r *accountRepo) GetAccountsByUserID(ctx context.Context, req *models.GetAc
 		accounts = append(accounts, &a)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to scan accounts by user id")
 	}
 
 	return &models.GetAccountsByUserIDResponse{
@@ -125,7 +126,7 @@ func (r *accountRepo) UpdateAccountBalance(ctx context.Context, tx *sql.Tx, acco
 		`UPDATE accounts 
 		SET balance = $1 WHERE guid=$2`)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to prepare update account balance statement")
 	}
 	defer stmt.Close()
 
@@ -134,7 +135,7 @@ func (r *accountRepo) UpdateAccountBalance(ctx context.Context, tx *sql.Tx, acco
 		account.ID,
 	)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to update account balance")
 	}
 	return nil
 }

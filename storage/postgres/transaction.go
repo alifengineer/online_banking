@@ -8,6 +8,7 @@ import (
 	"github.com/dilmurodov/online_banking/pkg/models"
 	"github.com/dilmurodov/online_banking/pkg/util"
 	"github.com/lib/pq"
+	"github.com/pkg/errors"
 )
 
 type txRepo struct {
@@ -47,7 +48,7 @@ func (r *txRepo) CreateTransaction(ctx context.Context, tx *sql.Tx, transaction 
 		transaction.Type,
 	)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to execute query")
 	}
 	return nil
 }
@@ -93,10 +94,6 @@ func (r *txRepo) GetTransactionsByAccountID(ctx context.Context, req *models.Get
 		params = append(params, req.RecipientID)
 	}
 
-	if req.OrderBy != "" {
-		order = fmt.Sprintf(" ORDER BY %s", req.OrderBy)
-	}
-
 	switch req.Desc {
 	case false:
 		order += " ASC"
@@ -117,7 +114,7 @@ func (r *txRepo) GetTransactionsByAccountID(ctx context.Context, req *models.Get
 		ctx,
 		query, params...)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to query rows")
 	}
 	defer rows.Close()
 
@@ -133,12 +130,12 @@ func (r *txRepo) GetTransactionsByAccountID(ctx context.Context, req *models.Get
 			&count,
 		)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to scan row")
 		}
 		transactions = append(transactions, &t)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to scan rows")
 	}
 
 	return &models.GetTransactionsByAccountIDResponse{
@@ -177,7 +174,7 @@ func (r *txRepo) GetTransactionByID(ctx context.Context, req *models.GetTransact
 		&createdAt,
 	)
 	if err != nil && err == sql.ErrNoRows {
-		return nil, fmt.Errorf("record not found")
+		return nil, errors.Wrap(err, "transaction not found")
 	}
 	t.CreatedAt = createdAt.String
 
@@ -226,13 +223,13 @@ func (r *txRepo) GetTransactionsByIDS(ctx context.Context, req *models.GetTransa
 			&createdAt,
 		)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to get transactions by ids")
 		}
 		t.CreatedAt = createdAt.String
 		transactions = append(transactions, t)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get transactions by ids")
 	}
 	resp.Transactions = transactions
 
@@ -242,8 +239,12 @@ func (r *txRepo) GetTransactionsByIDS(ctx context.Context, req *models.GetTransa
 func (r *txRepo) ApproveTransactions(ctx context.Context, tx *sql.Tx, req *models.ApproveTransactionsRequest) (err error) {
 
 	query :=
-		`UPDATE transactions
-		SET approved_at=true, done=true, done_timestamp=CURRENT_TIMESTAMP WHERE guid=ANY($1) AND account_id=$2 AND deleted_at IS NULL`
+		`UPDATE transactions SET 
+			approved_at=true, 
+			done=true, 
+			done_timestamp=CURRENT_TIMESTAMP 
+		WHERE 
+			guid=ANY($1) AND account_id=$2 AND deleted_at IS NULL`
 
 	result, err := tx.ExecContext(
 		ctx,
@@ -252,10 +253,10 @@ func (r *txRepo) ApproveTransactions(ctx context.Context, tx *sql.Tx, req *model
 		req.AccountID,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to approve transactions: %w", err)
+		return errors.Wrap(err, "failed to approve transactions")
 	}
 	if cn, err := result.RowsAffected(); err != nil || cn == 0 {
-		return fmt.Errorf("no transactions were approved")
+		return errors.Wrap(err, "failed to approve transactions")
 	}
 
 	return err

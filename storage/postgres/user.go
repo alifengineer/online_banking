@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/pkg/errors"
+
 	"github.com/dilmurodov/online_banking/pkg/models"
 	_ "github.com/lib/pq"
 )
@@ -55,11 +57,14 @@ func (u *userRepo) GetUserByID(ctx context.Context, req *models.GetUserByIDReque
 		&user.UpdatedAt,
 	)
 	if err != nil && err == sql.ErrNoRows {
-		return nil, err
+		return nil, errors.Wrap(err, "user not found")
+	} else if err != nil {
+		return nil, errors.Wrap(err, "error while getting user by id")
 	}
+
 	resp.User = user
 
-	return resp, err
+	return resp, nil
 }
 
 // Get User By Phone
@@ -93,10 +98,12 @@ func (u *userRepo) GetUserPasswordByPhone(ctx context.Context, phone string) (re
 	)
 
 	if err != nil && err == sql.ErrNoRows {
-		return nil, err
+		return nil, errors.Wrap(err, "user not found")
+	} else if err != nil {
+		return nil, errors.Wrap(err, "error while getting user by phone")
 	}
 
-	return resp, err
+	return resp, nil
 }
 
 func (u *userRepo) CreateUser(ctx context.Context, req *models.CreateUserRequest) (resp *models.User, err error) {
@@ -129,8 +136,8 @@ func (u *userRepo) CreateUser(ctx context.Context, req *models.CreateUserRequest
 		&resp.UpdatedAt,
 	)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error while creating user")
 	}
 
-	return resp, err
+	return resp, nil
 }
