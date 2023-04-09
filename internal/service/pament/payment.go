@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/dilmurodov/online_banking/pkg/logger"
 	"github.com/dilmurodov/online_banking/pkg/models"
 )
 
@@ -42,15 +43,17 @@ func (s *Service) Transfer(ctx context.Context, req *models.TransferRequest) err
 
 	// Create the debit and credit transactions for the transfer
 	debitTx := &models.Transaction{
-		AccountID: fromAccount.ID,
-		Amount:    req.Amount,
-		Type:      "debit",
+		AccountID:   fromAccount.ID,
+		Amount:      req.Amount,
+		Type:        "debit",
+		RecipientID: toAccount.ID,
 	}
 
 	creditTx := &models.Transaction{
-		AccountID: toAccount.ID,
-		Amount:    req.Amount,
-		Type:      "credit",
+		AccountID:   toAccount.ID,
+		Amount:      req.Amount,
+		Type:        "credit",
+		RecipientID: fromAccount.ID,
 	}
 
 	// Save the debit and credit transactions to the database
@@ -94,9 +97,10 @@ func (s *Service) WithDrawal(ctx context.Context, req *models.WithDrawalRequest)
 
 	// Create credit transactions for the transfer
 	debitTx := &models.Transaction{
-		AccountID: account.ID,
-		Amount:    req.Amount,
-		Type:      "debit",
+		AccountID:   account.ID,
+		Amount:      req.Amount,
+		Type:        "debit",
+		RecipientID: account.ID,
 	}
 
 	// Save the debit and credit transactions to the database
@@ -116,7 +120,7 @@ func (s *Service) WithDrawal(ctx context.Context, req *models.WithDrawalRequest)
 }
 
 func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTransactionsRequest) error {
-
+	s.log.Info("---CaptureTransactions--->", logger.Any("req", req))
 	// Begin a database transaction for the transfer
 	tx, err := s.strg.TxRepo().BeginTx(ctx)
 	if err != nil {
@@ -125,7 +129,8 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 
 	// Get transactions
 	transactions, err := s.strg.TxRepo().GetTransactionsByIDS(ctx, &models.GetTransactionsByIDSRequest{
-		IDS: req.TransactionIDS,
+		IDS:       req.TransactionIDS,
+		AccountID: req.AccountID,
 	})
 	if err != nil {
 		_ = tx.Rollback()
@@ -158,15 +163,13 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 		}
 	}
 
-	if err == nil {
-		// Commit the transaction
-		err = tx.Commit()
-		if err != nil {
-			return fmt.Errorf("failed to commit transaction: %w", err)
-		}
+	// Commit the transaction
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return err
+	return nil
 }
 
 // Deposit the specified amount to one account
@@ -188,9 +191,10 @@ func (s *Service) Deposit(ctx context.Context, req *models.DepositRequest) error
 
 	// Create credit transactions for the transfer
 	creditTx := &models.Transaction{
-		AccountID: account.ID,
-		Amount:    req.Amount,
-		Type:      "credit",
+		AccountID:   account.ID,
+		Amount:      req.Amount,
+		Type:        "credit",
+		RecipientID: account.ID,
 	}
 
 	// Save the debit and credit transactions to the database

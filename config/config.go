@@ -32,18 +32,8 @@ type Config struct {
 	PostgresDatabase string
 
 	PostgresMaxConnections int32
-	JaegerHostPort         string
-
-	DefaultOffset string
-	DefaultLimit  string
-
-	KafkaHOST string
-	KafkaPORT int
-
-	RmqUriHOST  string
-	RmqUsername string
-	RmqPassword string
-	RmqUriPORT  int
+	DefaultOffset          string
+	DefaultLimit           string
 }
 
 // Load ...
@@ -58,26 +48,19 @@ func Load() Config {
 	config.Environment = cast.ToString(getOrReturnDefaultValue("ENVIRONMENT", DebugMode))
 	config.Version = cast.ToString(getOrReturnDefaultValue("VERSION", "1.0"))
 
-	config.HTTPPort = cast.ToString(getOrReturnDefaultValue("HTTP_PORT", ":9107"))
+	config.HTTPPort = cast.ToString(getOrReturnDefaultValue("HTTP_PORT", ":3000"))
 	config.HTTPScheme = cast.ToString(getOrReturnDefaultValue("HTTP_SCHEME", "http"))
 
 	config.PostgresHost = cast.ToString(getOrReturnDefaultValue("POSTGRES_HOST", "0.0.0.0"))
 	config.PostgresPort = cast.ToInt(getOrReturnDefaultValue("POSTGRES_PORT", 5454))
 	config.PostgresUser = cast.ToString(getOrReturnDefaultValue("POSTGRES_USER", "postgres"))
 	config.PostgresPassword = cast.ToString(getOrReturnDefaultValue("POSTGRES_PASSWORD", "admin"))
-	config.PostgresDatabase = cast.ToString(getOrReturnDefaultValue("POSTGRES_DATABASE", "scenario_service"))
+	config.PostgresDatabase = cast.ToString(getOrReturnDefaultValue("POSTGRES_DATABASE", "online_banking"))
 
 	config.PostgresMaxConnections = cast.ToInt32(getOrReturnDefaultValue("POSTGRES_MAX_CONNECTIONS", 30))
 
 	config.DefaultOffset = cast.ToString(getOrReturnDefaultValue("DEFAULT_OFFSET", "0"))
 	config.DefaultLimit = cast.ToString(getOrReturnDefaultValue("DEFAULT_LIMIT", "100"))
-
-	config.JaegerHostPort = cast.ToString(getOrReturnDefaultValue("JAEGER_URL", "localhost:6831"))
-
-	config.RmqUsername = cast.ToString(getOrReturnDefaultValue("RMQ_USERNAME", "guest"))
-	config.RmqPassword = cast.ToString(getOrReturnDefaultValue("RMQ_PASSWORD", "guest"))
-	config.RmqUriHOST = cast.ToString(getOrReturnDefaultValue("RMQ_URI_HOST", "localhost"))
-	config.RmqUriPORT = cast.ToInt(getOrReturnDefaultValue("RMQ_URI_PORT", 5672))
 
 	return config
 }

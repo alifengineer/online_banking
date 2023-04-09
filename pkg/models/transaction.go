@@ -37,9 +37,10 @@ type ApproveTransactionsRequest struct {
 }
 
 type GetTransactionsByIDSRequest struct {
-	IDS      []string `json:"ids"`
-	Approved bool     `json:"approved"`
-	Done     bool     `json:"done"`
+	IDS       []string `json:"ids"`
+	Approved  bool     `json:"approved"`
+	Done      bool     `json:"done"`
+	AccountID string   `json:"account_id"`
 }
 
 type GetTransactionsByIDSResponse struct {

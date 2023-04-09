@@ -39,12 +39,16 @@ func NewPostgres(ctx context.Context, cfg config.Config) (storage.StorageI, erro
 		return nil, err
 	}
 
+	return NewStore(db), nil
+}
+
+func NewStore(db *sql.DB) *Store {
 	return &Store{
 		db:          db,
 		accountRepo: &accountRepo{db: db},
 		userRepo:    &userRepo{db: db},
 		txRepo:      &txRepo{db: db},
-	}, nil
+	}
 }
 
 func (s *Store) CloseDB() {

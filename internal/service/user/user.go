@@ -20,7 +20,7 @@ func (self *Service) GetUserByID(ctx context.Context, req *models.GetUserByIDReq
 		return nil, fmt.Errorf(config.RECORD_NOT_FOUND)
 	} else if err != nil {
 		self.log.Error("---GetUserByID--->GetUser", logger.Error(err))
-		return nil, fmt.Errorf(config.SYSTEM_ERROR)
+		return nil, fmt.Errorf(`%s, %w`, config.SYSTEM_ERROR, err)
 	}
 
 	return resp, err
@@ -35,7 +35,7 @@ func (self *Service) CreateUser(ctx context.Context, req *models.CreateUserReque
 	}
 	if err != nil {
 		self.log.Error("---CreateUser--->", logger.Error(err))
-		return nil, fmt.Errorf(config.SYSTEM_ERROR)
+		return nil, fmt.Errorf(`%s, %w`, config.SYSTEM_ERROR, err)
 	}
 
 	return resp, nil
@@ -55,7 +55,7 @@ func (self *Service) GetUserByCredentials(ctx context.Context, req *models.GetBy
 		return nil, fmt.Errorf(config.RECORD_NOT_FOUND)
 	} else if err != nil {
 		self.log.Error("---GetByCredentials--->GetUser", logger.Error(err))
-		return nil, fmt.Errorf(config.SYSTEM_ERROR)
+		return nil, fmt.Errorf(`%s, %w`, config.SYSTEM_ERROR, err)
 	}
 
 	check, err := security.ComparePassword(user.Password, req.Password)

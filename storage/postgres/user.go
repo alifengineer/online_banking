@@ -3,12 +3,9 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	"github.com/dilmurodov/online_banking/pkg/models"
 	_ "github.com/lib/pq"
-
-	"github.com/google/uuid"
 )
 
 type userRepo struct {
@@ -78,7 +75,7 @@ func (u *userRepo) GetUserPasswordByPhone(ctx context.Context, phone string) (re
 			password,
 			created_at,
 			updated_at
-		FROM users
+		FROM "users"
 		WHERE phone = $1 AND deleted_at = 0
 	`
 
@@ -105,36 +102,25 @@ func (u *userRepo) GetUserPasswordByPhone(ctx context.Context, phone string) (re
 func (u *userRepo) CreateUser(ctx context.Context, req *models.CreateUserRequest) (resp *models.User, err error) {
 	resp = &models.User{}
 
-	id := uuid.New()
-
 	query := `
-		INSERT INTO users (
-			guid,
+		INSERT INTO "users" (
 			first_name,
 			last_name,
 			phone,
-			password,
-			created_at,
-			updated_at
+			password
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7
-		)
+			$1, $2, $3, $4
+		) RETURNING guid, first_name, last_name, phone, created_at, updated_at
 	`
 
-	_, err = u.db.ExecContext(ctx, query,
-		id.String(),
+	row := u.db.QueryRowContext(ctx, query,
 		req.User.FirstName,
 		req.User.LastName,
 		req.User.Phone,
 		req.User.Password,
-		time.Now().Format(time.RFC3339),
-		time.Now().Format(time.RFC3339),
 	)
 
-	u.db.QueryRowContext(ctx,
-		`SELECT guid, first_name, last_name, phone, created_at, updated_at FROM users WHERE guid = $1`,
-		id,
-	).Scan(
+	err = row.Scan(
 		&resp.Guid,
 		&resp.FirstName,
 		&resp.LastName,
@@ -142,6 +128,9 @@ func (u *userRepo) CreateUser(ctx context.Context, req *models.CreateUserRequest
 		&resp.CreatedAt,
 		&resp.UpdatedAt,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	return resp, err
 }

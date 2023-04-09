@@ -123,7 +123,7 @@ func (r *accountRepo) GetAccountsByUserID(ctx context.Context, req *models.GetAc
 func (r *accountRepo) UpdateAccountBalance(ctx context.Context, tx *sql.Tx, account *models.Account) error {
 	stmt, err := tx.PrepareContext(ctx,
 		`UPDATE accounts 
-		SET balance = $1 WHERE id=$2`)
+		SET balance = $1 WHERE guid=$2`)
 	if err != nil {
 		return err
 	}

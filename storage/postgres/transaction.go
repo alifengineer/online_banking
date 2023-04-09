@@ -7,6 +7,7 @@ import (
 
 	"github.com/dilmurodov/online_banking/pkg/models"
 	"github.com/dilmurodov/online_banking/pkg/util"
+	"github.com/lib/pq"
 )
 
 type txRepo struct {
@@ -206,7 +207,8 @@ func (r *txRepo) GetTransactionsByIDS(ctx context.Context, req *models.GetTransa
 	rows, err := r.db.QueryContext(
 		ctx,
 		query,
-		req.IDS,
+		pq.Array(req.IDS),
+		req.AccountID,
 	)
 	if err != nil {
 		return nil, err
@@ -214,7 +216,7 @@ func (r *txRepo) GetTransactionsByIDS(ctx context.Context, req *models.GetTransa
 	defer rows.Close()
 
 	for rows.Next() {
-		var t models.Transaction
+		t := &models.Transaction{}
 		err := rows.Scan(
 			&t.ID,
 			&t.AccountID,
@@ -227,11 +229,12 @@ func (r *txRepo) GetTransactionsByIDS(ctx context.Context, req *models.GetTransa
 			return nil, err
 		}
 		t.CreatedAt = createdAt.String
-		transactions = append(transactions, &t)
+		transactions = append(transactions, t)
 	}
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
+	resp.Transactions = transactions
 
 	return resp, nil
 }

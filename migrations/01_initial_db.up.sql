@@ -56,26 +56,3 @@ CREATE TABLE IF NOT EXISTS "transactions" (
         FOREIGN KEY ("recipient_id")
         REFERENCES "accounts" ("guid")
 );
-
--- CREATE TRIGGER update_account
---     AFTER INSERT ON transactions
---     FOR EACH ROW
---     EXECUTE PROCEDURE update_account();
-
--- CREATE 
--- OR REPLACE FUNCTION update_balance() RETURNS TRIGGER AS $$
--- BEGIN
---     IF (TG_OP = 'INSERT') THEN
---         IF (NEW.transaction_type = 'credit') THEN
---             -- transaction_type = 'credit'
---             UPDATE balance SET balance = balance + NEW.transaction_amount WHERE user_id = NEW.user_id;
---         ELSE IF (NEW.transaction_type = 'debit') THEN
---             -- transaction_type = 'debit'
---             UPDATE balance SET balance = balance - NEW.transaction_amount WHERE user_id = NEW.user_id;
---         ELSE 
---             RAISE EXCEPTION 'Invalid transaction type: %', NEW.transaction_type;
---         END IF;
---     END IF;
---     RETURN NEW;
--- END;
--- $$ LANGUAGE plpgsql;

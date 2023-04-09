@@ -28,3 +28,6 @@ migration-up:
 
 migration-down:
 	migrate -path ./migrations/postgres -database 'postgres://postgres:admin1234@0.0.0.0:5432/udevs_go_auth_service?sslmode=disable' down
+
+mock:
+	mockgen -destination storage/mock/mock.go -source=storage/storage.go
