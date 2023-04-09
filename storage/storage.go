@@ -33,4 +33,5 @@ type TxRepoI interface {
 	GetTransactionsByAccountID(ctx context.Context, req *models.GetTransactionsByAccountIDRequest) (resp *models.GetTransactionsByAccountIDResponse, err error)
 	GetTransactionByID(ctx context.Context, req *models.GetTransactionByIDRequest) (resp *models.Transaction, err error)
 	GetTransactionsByIDS(ctx context.Context, req *models.GetTransactionsByIDSRequest) (resp *models.GetTransactionsByIDSResponse, err error)
+	ApproveTransactions(ctx context.Context, tx *sql.Tx, req *models.ApproveTransactionsRequest) (err error)
 }

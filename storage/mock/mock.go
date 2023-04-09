@@ -264,6 +264,20 @@ func (m *MockTxRepoI) EXPECT() *MockTxRepoIMockRecorder {
 	return m.recorder
 }
 
+// ApproveTransactions mocks base method.
+func (m *MockTxRepoI) ApproveTransactions(ctx context.Context, tx *sql.Tx, req *models.ApproveTransactionsRequest) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ApproveTransactions", ctx, tx, req)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ApproveTransactions indicates an expected call of ApproveTransactions.
+func (mr *MockTxRepoIMockRecorder) ApproveTransactions(ctx, tx, req interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApproveTransactions", reflect.TypeOf((*MockTxRepoI)(nil).ApproveTransactions), ctx, tx, req)
+}
+
 // BeginTx mocks base method.
 func (m *MockTxRepoI) BeginTx(ctx context.Context) (*sql.Tx, error) {
 	m.ctrl.T.Helper()

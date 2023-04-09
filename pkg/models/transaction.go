@@ -33,7 +33,8 @@ type GetTransactionByIDRequest struct {
 }
 
 type ApproveTransactionsRequest struct {
-	TransactionIDs []string `json:"transaction_ids"`
+	AccountID      string   `json:"account_id"`
+	TransactionIDS []string `json:"transaction_ids"`
 }
 
 type GetTransactionsByIDSRequest struct {

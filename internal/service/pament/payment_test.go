@@ -247,6 +247,9 @@ func TestPayment_CaptureTransactions(t *testing.T) {
 
 	mock.ExpectPrepare(`UPDATE accounts`).ExpectExec().WithArgs(100.0, "TestAccountID1").WillReturnResult(sqlmock.NewResult(1, 1))
 
+	mock.ExpectExec(`^UPDATE transactions
+	SET (.+?) WHERE * `).WithArgs(pq.Array([]string{"TestTransactionID"}), "TestAccountID1").WillReturnResult(sqlmock.NewResult(1, 1))
+
 	mock.ExpectCommit()
 
 	t.Run("SUCCESS", func(t *testing.T) {
@@ -259,10 +262,11 @@ func TestPayment_CaptureTransactions(t *testing.T) {
 			ID: "TestAccountID1",
 		}
 
-		inTx := &models.Transaction{
-			ID:          "TestTransactionID",
-			AccountID:   "TestAccountID1",
-			RecipientID: "TestAccountID1",
+		appTxs := &models.ApproveTransactionsRequest{
+			AccountID: "TestAccountID1",
+			TransactionIDS: []string{
+				"TestTransactionID",
+			},
 		}
 
 		req := &models.CaptureTransactionsRequest{
@@ -295,7 +299,12 @@ func TestPayment_CaptureTransactions(t *testing.T) {
 			ID: "TestAccountID1",
 		}).Return(acc1, nil).Times(1).AnyTimes()
 
-		repoTx.EXPECT().CreateTransaction(ctx, tx, inTx).Return(nil).Times(1).AnyTimes()
+		repo.EXPECT().UpdateAccountBalance(ctx, tx, &models.Account{
+			ID:      "TestAccountID1",
+			Balance: 100.0,
+		}).Return(nil).Times(1).AnyTimes()
+
+		repoTx.EXPECT().ApproveTransactions(ctx, tx, appTxs).Return(nil).Times(1).AnyTimes()
 
 		err = s.CaptureTransactions(ctx, req)
 		r.NoError(err)

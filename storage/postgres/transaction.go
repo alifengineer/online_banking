@@ -238,3 +238,25 @@ func (r *txRepo) GetTransactionsByIDS(ctx context.Context, req *models.GetTransa
 
 	return resp, nil
 }
+
+func (r *txRepo) ApproveTransactions(ctx context.Context, tx *sql.Tx, req *models.ApproveTransactionsRequest) (err error) {
+
+	query :=
+		`UPDATE transactions
+		SET approved_at=true, done=true, done_timestamp=CURRENT_TIMESTAMP WHERE guid=ANY($1) AND account_id=$2 AND deleted_at IS NULL`
+
+	result, err := tx.ExecContext(
+		ctx,
+		query,
+		pq.Array(req.TransactionIDS),
+		req.AccountID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to approve transactions: %w", err)
+	}
+	if cn, err := result.RowsAffected(); err != nil || cn == 0 {
+		return fmt.Errorf("no transactions were approved")
+	}
+
+	return err
+}

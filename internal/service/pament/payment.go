@@ -163,6 +163,15 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 		}
 	}
 
+	err = s.strg.TxRepo().ApproveTransactions(ctx, tx, &models.ApproveTransactionsRequest{
+		TransactionIDS: req.TransactionIDS,
+		AccountID:      req.AccountID,
+	})
+	if err != nil {
+		_ = tx.Rollback()
+		return fmt.Errorf("failed to approve transactions: %w", err)
+	}
+
 	// Commit the transaction
 	err = tx.Commit()
 	if err != nil {
