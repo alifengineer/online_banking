@@ -8,6 +8,7 @@ import (
 
 // @Security BearerAuth
 // WithDrawalHandler godoc
+// @ID withdrawal
 // @Summary Withdrawal
 // @Description Withdrawal
 // @Tags Payment
@@ -43,6 +44,7 @@ func (h *Handler) WithDrawalHandler(c *gin.Context) {
 
 // @Security BearerAuth
 // DepositHandler godoc
+// @ID deposit
 // @Summary Deposit
 // @Description Deposit
 // @Tags Payment
@@ -78,6 +80,7 @@ func (h *Handler) DepositHandler(c *gin.Context) {
 
 // @Security BearerAuth
 // ConfirmPaymentHandler godoc
+// @ID confirm
 // @Summary Confirm Payment
 // @Description Confirm Payment
 // @Tags Payment
@@ -95,6 +98,7 @@ func (h *Handler) ConfirmPaymentHandler(c *gin.Context) {
 
 // @Security BearerAuth
 // CapturePaymentHandler godoc
+// @ID capture
 // @Summary Capture Payment
 // @Description Capture Payment
 // @Tags Payment
@@ -124,6 +128,7 @@ func (h *Handler) CaptureTransactionsHandler(c *gin.Context) {
 
 // @Security BearerAuth
 // TransferHandler godoc
+// @ID transfer
 // @Summary Transfer
 // @Description Transfer
 // @Tags Payment

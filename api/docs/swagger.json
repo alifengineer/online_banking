@@ -189,6 +189,7 @@
                     "Payment"
                 ],
                 "summary": "Capture Payment",
+                "operationId": "capture",
                 "parameters": [
                     {
                         "description": "Capture Payment",
@@ -276,6 +277,7 @@
                     "Payment"
                 ],
                 "summary": "Confirm Payment",
+                "operationId": "confirm",
                 "parameters": [
                     {
                         "description": "Confirm Payment",
@@ -363,6 +365,7 @@
                     "Payment"
                 ],
                 "summary": "Deposit",
+                "operationId": "deposit",
                 "parameters": [
                     {
                         "description": "Deposit",
@@ -450,6 +453,7 @@
                     "Payment"
                 ],
                 "summary": "Transfer",
+                "operationId": "transfer",
                 "parameters": [
                     {
                         "description": "Transfer",
@@ -537,6 +541,7 @@
                     "Payment"
                 ],
                 "summary": "Withdrawal",
+                "operationId": "withdrawal",
                 "parameters": [
                     {
                         "description": "Withdrawal",

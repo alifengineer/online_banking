@@ -200,6 +200,7 @@ const docTemplate = `{
                     "Payment"
                 ],
                 "summary": "Capture Payment",
+                "operationId": "capture",
                 "parameters": [
                     {
                         "description": "Capture Payment",
@@ -287,6 +288,7 @@ const docTemplate = `{
                     "Payment"
                 ],
                 "summary": "Confirm Payment",
+                "operationId": "confirm",
                 "parameters": [
                     {
                         "description": "Confirm Payment",
@@ -374,6 +376,7 @@ const docTemplate = `{
                     "Payment"
                 ],
                 "summary": "Deposit",
+                "operationId": "deposit",
                 "parameters": [
                     {
                         "description": "Deposit",
@@ -461,6 +464,7 @@ const docTemplate = `{
                     "Payment"
                 ],
                 "summary": "Transfer",
+                "operationId": "transfer",
                 "parameters": [
                     {
                         "description": "Transfer",
@@ -548,6 +552,7 @@ const docTemplate = `{
                     "Payment"
                 ],
                 "summary": "Withdrawal",
+                "operationId": "withdrawal",
                 "parameters": [
                     {
                         "description": "Withdrawal",

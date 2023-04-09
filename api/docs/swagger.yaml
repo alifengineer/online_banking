@@ -191,6 +191,7 @@ paths:
       consumes:
       - application/json
       description: Capture Payment
+      operationId: capture
       parameters:
       - description: Capture Payment
         in: body
@@ -238,6 +239,7 @@ paths:
       consumes:
       - application/json
       description: Confirm Payment
+      operationId: confirm
       parameters:
       - description: Confirm Payment
         in: body
@@ -285,6 +287,7 @@ paths:
       consumes:
       - application/json
       description: Deposit
+      operationId: deposit
       parameters:
       - description: Deposit
         in: body
@@ -332,6 +335,7 @@ paths:
       consumes:
       - application/json
       description: Transfer
+      operationId: transfer
       parameters:
       - description: Transfer
         in: body
@@ -379,6 +383,7 @@ paths:
       consumes:
       - application/json
       description: Withdrawal
+      operationId: withdrawal
       parameters:
       - description: Withdrawal
         in: body
