@@ -24,10 +24,10 @@ linter:
 	golangci-lint run
 
 migration-up:
-	migrate -path ./migrations/postgres -database 'postgres://postgres:admin1234@0.0.0.0:5432/udevs_go_auth_service?sslmode=disable' up
+	migrate -path ./migrations -database 'postgres://admin:password@0.0.0.0:5454/online_banking?sslmode=disable' up
 
 migration-down:
-	migrate -path ./migrations/postgres -database 'postgres://postgres:admin1234@0.0.0.0:5432/udevs_go_auth_service?sslmode=disable' down
+	migrate -path ./migrations -database 'postgres://admin:password@0.0.0.0:5454/online_banking?sslmode=disable' down
 
 mock:
 	mockgen -destination storage/mock/mock.go -source=storage/storage.go
