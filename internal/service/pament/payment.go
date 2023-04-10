@@ -9,32 +9,39 @@ import (
 )
 
 // Transfer transfers the specified amount from one account to another
-func (s *Service) Transfer(ctx context.Context, req *models.TransferRequest) error {
+func (s *Service) Transfer(ctx context.Context, req *models.TransferRequest) (resp *models.TransferResponse, err error) {
 	s.log.Info("---Transfer--->", logger.Any("req", req))
+	resp = &models.TransferResponse{}
+	
 	// Begin a database transaction for the transfer
 	tx, err := s.strg.TxRepo().BeginTx(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		s.log.Error("failed to begin transaction", logger.Error(err))
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
+	defer tx.Rollback()
 
 	// Get the account objects from the account repository
 	fromAccount, err := s.strg.Account().GetAccountByID(ctx, &models.GetAccountByIDRequest{
 		ID: req.FromAccountID,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to get from account: %w", err)
+		s.log.Error("failed to get from account", logger.Error(err))
+		return nil, fmt.Errorf("failed to get from account: %w", err)
 	}
 
 	toAccount, err := s.strg.Account().GetAccountByID(ctx, &models.GetAccountByIDRequest{
 		ID: req.ToAccountID,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to get to account: %w", err)
+		s.log.Error("failed to get to account", logger.Error(err))
+		return nil, fmt.Errorf("failed to get to account: %w", err)
 	}
 
 	// Ensure that the from account has enough funds to transfer
 	if fromAccount.Balance < req.Amount {
-		return fmt.Errorf("insufficient funds in from account")
+		s.log.Error("insufficient funds in from account", logger.Error(err))
+		return nil, fmt.Errorf("insufficient funds in from account")
 	}
 
 	// Debit the amount from the from account and credit it to the to account
@@ -57,42 +64,49 @@ func (s *Service) Transfer(ctx context.Context, req *models.TransferRequest) err
 	}
 
 	// Save the debit and credit transactions to the database
-	err = s.strg.TxRepo().CreateTransaction(ctx, tx, debitTx)
+	createTx1, err := s.strg.TxRepo().CreateTransaction(ctx, tx, debitTx)
 	if err != nil {
-		_ = tx.Rollback()
-		return fmt.Errorf("failed to create debit transaction: %w", err)
+		s.log.Error("failed to create debit transaction", logger.Error(err))
+		return nil, fmt.Errorf("failed to create debit transaction: %w", err)
 	}
+	resp.Transactions = append(resp.Transactions, createTx1)
 
-	err = s.strg.TxRepo().CreateTransaction(ctx, tx, creditTx)
+	createTx2, err := s.strg.TxRepo().CreateTransaction(ctx, tx, creditTx)
 	if err != nil {
-		_ = tx.Rollback()
-		return fmt.Errorf("failed to create credit transaction: %w", err)
+		s.log.Error("failed to create credit transaction", logger.Error(err))
+		return nil, fmt.Errorf("failed to create credit transaction: %w", err)
 	}
+	resp.Transactions = append(resp.Transactions, createTx2)
 
 	// Commit the transaction
 	err = tx.Commit()
 	if err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		s.log.Error("failed to commit transaction", logger.Error(err))
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return nil
+	return resp, nil
 }
 
 // WithDrawal the specified amount from one account to another
-func (s *Service) WithDrawal(ctx context.Context, req *models.WithDrawalRequest) error {
+func (s *Service) WithDrawal(ctx context.Context, req *models.WithDrawalRequest) (resp *models.WithDrawalResponse, err error) {
+	resp = &models.WithDrawalResponse{}
 	s.log.Info("---WithDrawal---", logger.Any("req", req))
 	// Begin a database transaction for the transfer
 	tx, err := s.strg.TxRepo().BeginTx(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		s.log.Error("failed to begin transaction", logger.Any("err", err))
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
+	defer tx.Rollback()
 
 	// Get the account objects from the account repository
 	account, err := s.strg.Account().GetAccountByID(ctx, &models.GetAccountByIDRequest{
 		ID: req.AccountID,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to get from account: %w", err)
+		s.log.Error("failed to get from account", logger.Any("err", err))
+		return nil, fmt.Errorf("failed to get from account: %w", err)
 	}
 
 	// Create credit transactions for the transfer
@@ -104,19 +118,20 @@ func (s *Service) WithDrawal(ctx context.Context, req *models.WithDrawalRequest)
 	}
 
 	// Save the debit and credit transactions to the database
-	err = s.strg.TxRepo().CreateTransaction(ctx, tx, debitTx)
+	createTx, err := s.strg.TxRepo().CreateTransaction(ctx, tx, debitTx)
 	if err != nil {
-		_ = tx.Rollback()
-		return fmt.Errorf("failed to create debit transaction: %w", err)
+		s.log.Error("failed to create debit transaction", logger.Any("err", err))
+		return nil, fmt.Errorf("failed to create debit transaction: %w", err)
 	}
+	resp.Transaction = createTx
 
 	// Commit the transaction
 	err = tx.Commit()
 	if err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		s.log.Error("failed to commit transaction", logger.Any("err", err))
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
-
-	return nil
+	return resp, nil
 }
 
 func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTransactionsRequest) error {
@@ -126,6 +141,7 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
+	defer tx.Rollback()
 
 	// Get transactions
 	transactions, err := s.strg.TxRepo().GetTransactionsByIDS(ctx, &models.GetTransactionsByIDSRequest{
@@ -133,7 +149,7 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 		AccountID: req.AccountID,
 	})
 	if err != nil {
-		_ = tx.Rollback()
+		s.log.Error("failed to get transactions", logger.Error(err))
 		return fmt.Errorf("failed to get transactions: %w", err)
 	}
 
@@ -143,7 +159,7 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 			ID: v.AccountID,
 		})
 		if err != nil {
-			_ = tx.Rollback()
+			s.log.Error("failed to get from account", logger.Error(err))
 			return fmt.Errorf("failed to get from account: %w", err)
 		}
 
@@ -158,7 +174,7 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 		// Update the account balances in the database
 		err = s.strg.Account().UpdateAccountBalance(ctx, tx, accnt)
 		if err != nil {
-			_ = tx.Rollback()
+			s.log.Error("failed to update from account", logger.Error(err))
 			return fmt.Errorf("failed to update from account: %w", err)
 		}
 	}
@@ -168,13 +184,14 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 		AccountID:      req.AccountID,
 	})
 	if err != nil {
-		_ = tx.Rollback()
+		s.log.Error("failed to approve transactions", logger.Error(err))
 		return fmt.Errorf("failed to approve transactions: %w", err)
 	}
 
 	// Commit the transaction
 	err = tx.Commit()
 	if err != nil {
+		s.log.Error("failed to commit transaction", logger.Error(err))
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
@@ -182,15 +199,16 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 }
 
 // Deposit the specified amount to one account
-func (s *Service) Deposit(ctx context.Context, req *models.DepositRequest) error {
+func (s *Service) Deposit(ctx context.Context, req *models.DepositRequest) (resp *models.DepositResponse, err error) {
 	s.log.Info("---Deposit--->", logger.Any("req", req))
-
+	resp = &models.DepositResponse{}
 	// Begin a database transaction for the transfer
 	tx, err := s.strg.TxRepo().BeginTx(ctx)
 	if err != nil {
 		s.log.Error("---Deposit->BeginTx--->", logger.Error(err))
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
+	defer tx.Rollback()
 
 	// Get the account objects from the account repository
 	account, err := s.strg.Account().GetAccountByID(ctx, &models.GetAccountByIDRequest{
@@ -198,7 +216,7 @@ func (s *Service) Deposit(ctx context.Context, req *models.DepositRequest) error
 	})
 	if err != nil {
 		s.log.Error("---Deposit->GetAccountByID--->", logger.Error(err))
-		return fmt.Errorf("failed to get from account: %w", err)
+		return nil, fmt.Errorf("failed to get from account: %w", err)
 	}
 
 	// Create credit transactions for the transfer
@@ -210,19 +228,19 @@ func (s *Service) Deposit(ctx context.Context, req *models.DepositRequest) error
 	}
 
 	// Save the debit and credit transactions to the database
-	err = s.strg.TxRepo().CreateTransaction(ctx, tx, creditTx)
+	createTxresp, err := s.strg.TxRepo().CreateTransaction(ctx, tx, creditTx)
 	if err != nil {
-		_ = tx.Rollback()
 		s.log.Error("---Deposit->CreateTransaction--->", logger.Error(err))
-		return fmt.Errorf("failed to create debit transaction: %w", err)
+		return nil, fmt.Errorf("failed to create debit transaction: %w", err)
 	}
+	resp.Transaction = createTxresp
 
 	// Commit the transaction
 	err = tx.Commit()
 	if err != nil {
 		s.log.Error("---Deposit->Commit--->", logger.Error(err))
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return nil
+	return resp, nil
 }

@@ -29,7 +29,7 @@ type AccountRepoI interface {
 
 type TxRepoI interface {
 	BeginTx(ctx context.Context) (*sql.Tx, error)
-	CreateTransaction(ctx context.Context, tx *sql.Tx, transaction *models.Transaction) error
+	CreateTransaction(ctx context.Context, tx *sql.Tx, transaction *models.Transaction) (*models.Transaction, error)
 	GetTransactionsByAccountID(ctx context.Context, req *models.GetTransactionsByAccountIDRequest) (resp *models.GetTransactionsByAccountIDResponse, err error)
 	GetTransactionByID(ctx context.Context, req *models.GetTransactionByIDRequest) (resp *models.Transaction, err error)
 	GetTransactionsByIDS(ctx context.Context, req *models.GetTransactionsByIDSRequest) (resp *models.GetTransactionsByIDSResponse, err error)

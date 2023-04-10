@@ -26,7 +26,8 @@ func (s *txRepo) BeginTx(ctx context.Context) (*sql.Tx, error) {
 }
 
 // CreateTransaction creates a new transaction in a given transaction object
-func (r *txRepo) CreateTransaction(ctx context.Context, tx *sql.Tx, transaction *models.Transaction) error {
+func (r *txRepo) CreateTransaction(ctx context.Context, tx *sql.Tx, transaction *models.Transaction) (resp *models.Transaction, err error) {
+	resp = &models.Transaction{}
 	stmt, err := tx.PrepareContext(
 		ctx,
 		`INSERT INTO transactions 
@@ -35,22 +36,38 @@ func (r *txRepo) CreateTransaction(ctx context.Context, tx *sql.Tx, transaction 
 			recipient_id,
 			transaction_type
 		) 
-		VALUES ($1, $2, $3, $4)`)
+		VALUES ($1, $2, $3, $4) 
+		RETURNING 
+			guid, 
+			transaction_amount, 
+			transaction_type, 
+			recipient_id, 
+			created_at`)
 	if err != nil {
-		return err
+		return nil, errors.Wrap(err, "failed to prepare query")
 	}
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx,
+	row, err := stmt.QueryContext(ctx,
 		transaction.AccountID,
 		transaction.Amount,
 		transaction.RecipientID,
 		transaction.Type,
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed to execute query")
+		return nil, errors.Wrap(err, "failed to execute query")
 	}
-	return nil
+	row.Scan(
+		&resp.ID,
+		&resp.Amount,
+		&resp.Type,
+		&resp.RecipientID,
+		&resp.CreatedAt,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to execute query")
+	}
+	return resp, nil
 }
 
 // GetTransactionsByAccountID returns all transactions associated with the given account ID
@@ -240,11 +257,11 @@ func (r *txRepo) ApproveTransactions(ctx context.Context, tx *sql.Tx, req *model
 
 	query :=
 		`UPDATE transactions SET 
-			approved_at=true, 
+			approved=true, 
 			done=true, 
 			done_timestamp=CURRENT_TIMESTAMP 
 		WHERE 
-			guid=ANY($1) AND account_id=$2 AND deleted_at IS NULL`
+			guid=ANY($1) AND account_id=$2 AND deleted_at IS NULL AND approved=false AND done=false`
 
 	result, err := tx.ExecContext(
 		ctx,

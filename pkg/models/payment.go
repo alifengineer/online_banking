@@ -6,14 +6,26 @@ type TransferRequest struct {
 	Amount        float64 `json:"amount"`
 }
 
+type TransferResponse struct {
+	Transactions []*Transaction `json:"transaction"`
+}
+
 type WithDrawalRequest struct {
 	AccountID string  `json:"account_id"`
 	Amount    float64 `json:"amount"`
 }
 
+type WithDrawalResponse struct {
+	Transaction *Transaction `json:"transaction"`
+}
+
 type DepositRequest struct {
 	AccountID string  `json:"account_id"`
 	Amount    float64 `json:"amount"`
+}
+
+type DepositResponse struct {
+	Transaction *Transaction `json:"transaction"`
 }
 
 type CaptureTransactionsRequest struct {

@@ -294,11 +294,12 @@ func (mr *MockTxRepoIMockRecorder) BeginTx(ctx interface{}) *gomock.Call {
 }
 
 // CreateTransaction mocks base method.
-func (m *MockTxRepoI) CreateTransaction(ctx context.Context, tx *sql.Tx, transaction *models.Transaction) error {
+func (m *MockTxRepoI) CreateTransaction(ctx context.Context, tx *sql.Tx, transaction *models.Transaction) (*models.Transaction, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateTransaction", ctx, tx, transaction)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(*models.Transaction)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // CreateTransaction indicates an expected call of CreateTransaction.

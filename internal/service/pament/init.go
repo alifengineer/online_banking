@@ -11,9 +11,9 @@ import (
 
 type ServiceI interface {
 	CaptureTransactions(ctx context.Context, req *models.CaptureTransactionsRequest) error
-	WithDrawal(ctx context.Context, req *models.WithDrawalRequest) error
-	Transfer(ctx context.Context, req *models.TransferRequest) error
-	Deposit(ctx context.Context, req *models.DepositRequest) error
+	WithDrawal(ctx context.Context, req *models.WithDrawalRequest) (*models.WithDrawalResponse, error)
+	Transfer(ctx context.Context, req *models.TransferRequest) (*models.TransferResponse, error)
+	Deposit(ctx context.Context, req *models.DepositRequest) (*models.DepositResponse, error)
 }
 
 type Service struct {

@@ -39,14 +39,15 @@ func TestPayment_Transfer(t *testing.T) {
 
 	row2 := sqlmock.NewRows([]string{"guid", "user_id", "balance", "created_at", "updated_at"}).AddRow("TestAccountID2", "TestUserID", 200, "2021-01-01", "2021-01-01")
 
+	txrow := sqlmock.NewRows([]string{"guid", "account_id", "transaction_amount", "recipient_id", "transaction_type", "created_at"}).AddRow("TestTransactionID", "TestAccountID1", 100.0, "TestAccountID2", "debit", "2021-01-01")
+
 	mock.ExpectQuery(`^SELECT (.+?) FROM accounts * `).WithArgs("TestAccountID1").WillReturnRows(row1)
 
 	mock.ExpectQuery(`^SELECT (.+?) FROM accounts * `).WithArgs("TestAccountID2").WillReturnRows(row2)
 
-	mock.ExpectPrepare("INSERT INTO transactions").ExpectExec().WithArgs("TestAccountID1", 100.0, "TestAccountID2", "debit").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectPrepare("INSERT INTO transactions").ExpectQuery().WithArgs("TestAccountID1", 100.0, "TestAccountID2", "debit").WillReturnRows(txrow)
 
-	mock.ExpectPrepare("INSERT INTO transactions").ExpectExec().WithArgs("TestAccountID2", 100.0, "TestAccountID1", "credit").WillReturnResult(sqlmock.NewResult(1, 1))
-
+	mock.ExpectPrepare("INSERT INTO transactions").ExpectQuery().WithArgs("TestAccountID2", 100.0, "TestAccountID1", "credit").WillReturnRows(txrow)
 	mock.ExpectCommit()
 
 	t.Run("SUCCESS", func(t *testing.T) {
@@ -85,11 +86,11 @@ func TestPayment_Transfer(t *testing.T) {
 			ID: "TestAccountID2",
 		}).Return(acc2, nil).Times(1).AnyTimes()
 
-		repoTx.EXPECT().CreateTransaction(ctx, tx, inTx).Return(nil).Times(1).AnyTimes()
+		repoTx.EXPECT().CreateTransaction(ctx, tx, inTx).Return(inTx, nil).Times(1).AnyTimes()
 
-		repoTx.EXPECT().CreateTransaction(ctx, tx, inTx).Return(nil).Times(1).AnyTimes()
+		repoTx.EXPECT().CreateTransaction(ctx, tx, inTx).Return(inTx, nil).Times(1).AnyTimes()
 
-		err = s.Transfer(ctx, req)
+		_, err = s.Transfer(ctx, req)
 		r.NoError(err)
 		r.NoError(mock.ExpectationsWereMet())
 	})
@@ -116,9 +117,11 @@ func TestPayment_WithDrawal(t *testing.T) {
 	mock.ExpectBegin()
 	row1 := sqlmock.NewRows([]string{"guid", "user_id", "balance", "created_at", "updated_at"}).AddRow("TestAccountID1", "TestUserID", 200, "2021-01-01", "2021-01-01")
 
+	txrow := sqlmock.NewRows([]string{"guid", "transaction_amount", "transaction_type", "recipient_id", "created_at"}).AddRow("TestTransactionID", 100.0, "debit", "TestAccountID1", "2021-01-01")
+
 	mock.ExpectQuery(`^SELECT (.+?) FROM accounts * `).WithArgs("TestAccountID1").WillReturnRows(row1)
 
-	mock.ExpectPrepare("INSERT INTO transactions").ExpectExec().WithArgs("TestAccountID1", 100.0, "TestAccountID1", "debit").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectPrepare("INSERT INTO transactions").ExpectQuery().WithArgs("TestAccountID1", 100.0, "TestAccountID1", "debit").WillReturnRows(txrow)
 
 	mock.ExpectCommit()
 
@@ -136,6 +139,9 @@ func TestPayment_WithDrawal(t *testing.T) {
 			ID:          "TestTransactionID",
 			AccountID:   "TestAccountID1",
 			RecipientID: "TestAccountID1",
+			Amount:      100.0,
+			Type:        "debit",
+			CreatedAt:   "2021-01-01",
 		}
 
 		req := &models.WithDrawalRequest{
@@ -149,9 +155,9 @@ func TestPayment_WithDrawal(t *testing.T) {
 			ID: "TestAccountID1",
 		}).Return(acc1, nil).Times(1).AnyTimes()
 
-		repoTx.EXPECT().CreateTransaction(ctx, tx, inTx).Return(nil).Times(1).AnyTimes()
+		repoTx.EXPECT().CreateTransaction(ctx, tx, inTx).Return(inTx, nil).Times(1).AnyTimes()
 
-		err = s.WithDrawal(ctx, req)
+		_, err = s.WithDrawal(ctx, req)
 		r.NoError(err)
 		r.NoError(mock.ExpectationsWereMet())
 	})
@@ -178,9 +184,11 @@ func TestPayment_Deposit(t *testing.T) {
 	mock.ExpectBegin()
 	row1 := sqlmock.NewRows([]string{"guid", "user_id", "balance", "created_at", "updated_at"}).AddRow("TestAccountID1", "TestUserID", 200, "2021-01-01", "2021-01-01")
 
+	txrow := sqlmock.NewRows([]string{"guid", "transaction_amount", "transaction_type", "recipient_id", "created_at"}).AddRow("TestTransactionID", 100.0, "credit", "TestAccountID1", "2021-01-01")
+
 	mock.ExpectQuery(`^SELECT (.+?) FROM accounts * `).WithArgs("TestAccountID1").WillReturnRows(row1)
 
-	mock.ExpectPrepare("INSERT INTO transactions").ExpectExec().WithArgs("TestAccountID1", 100.0, "TestAccountID1", "credit").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectPrepare("INSERT INTO transactions").ExpectQuery().WithArgs("TestAccountID1", 100.0, "TestAccountID1", "credit").WillReturnRows(txrow)
 
 	mock.ExpectCommit()
 
@@ -198,6 +206,9 @@ func TestPayment_Deposit(t *testing.T) {
 			ID:          "TestTransactionID",
 			AccountID:   "TestAccountID1",
 			RecipientID: "TestAccountID1",
+			Amount:      100.0,
+			Type:        "credit",
+			CreatedAt:   "2021-01-01",
 		}
 
 		req := &models.DepositRequest{
@@ -211,9 +222,9 @@ func TestPayment_Deposit(t *testing.T) {
 			ID: "TestAccountID1",
 		}).Return(acc1, nil).Times(1).AnyTimes()
 
-		repoTx.EXPECT().CreateTransaction(ctx, tx, inTx).Return(nil).Times(1).AnyTimes()
+		repoTx.EXPECT().CreateTransaction(ctx, tx, inTx).Return(inTx, nil).Times(1).AnyTimes()
 
-		err = s.Deposit(ctx, req)
+		_, err = s.Deposit(ctx, req)
 		r.NoError(err)
 		r.NoError(mock.ExpectationsWereMet())
 	})
