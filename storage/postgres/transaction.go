@@ -236,13 +236,12 @@ func (r *txRepo) GetTransactionsByIDS(ctx context.Context, req *models.GetTransa
 			done,
 			done_timestamp
 		FROM transactions
-		WHERE guid=ANY($1) AND account_id=$2 AND deleted_at IS NULL`
+		WHERE guid=ANY($1) AND deleted_at IS NULL`
 
 	rows, err := r.db.QueryContext(
 		ctx,
 		query,
 		pq.Array(req.IDS),
-		req.AccountID,
 	)
 	if err != nil {
 		return nil, &customerrors.InternalServerError{Message: err.Error()}

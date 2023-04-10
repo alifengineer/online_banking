@@ -3,6 +3,7 @@ package payment
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/dilmurodov/online_banking/pkg/logger"
 	"github.com/dilmurodov/online_banking/pkg/models"
@@ -57,10 +58,10 @@ func (s *Service) Transfer(ctx context.Context, req *models.TransferRequest) (re
 	}
 
 	creditTx := &models.Transaction{
-		AccountID:   fromAccount.ID,
+		AccountID:   toAccount.ID,
 		Amount:      req.Amount,
 		Type:        "credit",
-		RecipientID: toAccount.ID,
+		RecipientID: fromAccount.ID,
 	}
 
 	// Save the debit and credit transactions to the database
@@ -142,10 +143,14 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
+	var (
+		accnt *models.Account
+		cntr  int
+	)
+
 	// Get transactions
 	transactions, err := s.strg.TxRepo().GetTransactionsByIDS(ctx, &models.GetTransactionsByIDSRequest{
-		IDS:       req.TransactionIDS,
-		AccountID: req.AccountID,
+		IDS: req.TransactionIDS,
 	})
 	if err != nil {
 		_ = tx.Rollback()
@@ -154,10 +159,6 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 	}
 
 	for _, v := range transactions.Transactions {
-
-		accnt, err := s.strg.Account().GetAccountByID(ctx, &models.GetAccountByIDRequest{
-			ID: v.AccountID,
-		})
 		if err != nil {
 			_ = tx.Rollback()
 			s.log.Error("failed to get from account", logger.Error(err))
@@ -165,13 +166,31 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 		}
 
 		if v.Type == "credit" {
+			cntr++
+			log.Println("credit---->", v.Amount)
+			accnt, err = s.strg.Account().GetAccountByID(ctx, &models.GetAccountByIDRequest{
+				ID: v.AccountID,
+			})
+			if err != nil {
+				_ = tx.Rollback()
+				s.log.Error("failed to get from account", logger.Error(err))
+				return fmt.Errorf("failed to get from account: %w", err)
+			}
 			accnt.Balance += v.Amount
-			accnt.ID = v.RecipientID
 		}
 
 		if v.Type == "debit" {
+			cntr++
+			log.Println("debit---->", v.Amount)
+			accnt, err = s.strg.Account().GetAccountByID(ctx, &models.GetAccountByIDRequest{
+				ID: v.AccountID,
+			})
+			if err != nil {
+				_ = tx.Rollback()
+				s.log.Error("failed to get from account", logger.Error(err))
+				return fmt.Errorf("failed to get from account: %w", err)
+			}
 			accnt.Balance -= v.Amount
-			accnt.ID = v.AccountID
 		}
 
 		// Update the account balances in the database
@@ -181,6 +200,12 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 			s.log.Error("failed to update from account", logger.Error(err))
 			return fmt.Errorf("failed to update from account: %w", err)
 		}
+	}
+
+	if cntr != len(transactions.Transactions) {
+		_ = tx.Rollback()
+		s.log.Error("failed to update from account", logger.Error(err))
+		return fmt.Errorf("transactions number mismatch")
 	}
 
 	err = s.strg.TxRepo().ApproveTransactions(ctx, tx, &models.ApproveTransactionsRequest{
