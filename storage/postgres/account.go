@@ -3,7 +3,9 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"strings"
 
+	"github.com/dilmurodov/online_banking/pkg/customerrors"
 	"github.com/dilmurodov/online_banking/pkg/models"
 	"github.com/pkg/errors"
 )
@@ -35,7 +37,7 @@ func (r *accountRepo) CreateAccount(ctx context.Context, account *models.CreateA
 	)
 	err = row.Scan(&accountID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to scan account id")
+		return nil, &customerrors.InternalServerError{Message: err.Error()}
 	}
 	return &models.Account{
 		ID:      accountID,
@@ -68,8 +70,8 @@ func (r *accountRepo) GetAccountByID(ctx context.Context, req *models.GetAccount
 		&createdAt,
 		&updatedAt,
 	)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to scan account")
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil, &customerrors.UserNotFoundError{Guid: req.ID}
 	}
 	account.CreatedAt = createdAt.String
 	account.UpdatedAt = updatedAt.String
@@ -92,7 +94,7 @@ func (r *accountRepo) GetAccountsByUserID(ctx context.Context, req *models.GetAc
 			count(1) OVER() AS count
 		FROM accounts WHERE user_id=$1 AND deleted_at = 0`, req.UserID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to query accounts by user id")
+		return nil, &customerrors.InternalServerError{Message: err.Error()}
 	}
 	defer rows.Close()
 
@@ -112,7 +114,7 @@ func (r *accountRepo) GetAccountsByUserID(ctx context.Context, req *models.GetAc
 		accounts = append(accounts, &a)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "failed to scan accounts by user id")
+		return nil, &customerrors.InternalServerError{Message: err.Error()}
 	}
 
 	return &models.GetAccountsByUserIDResponse{
@@ -134,8 +136,11 @@ func (r *accountRepo) UpdateAccountBalance(ctx context.Context, tx *sql.Tx, acco
 		account.Balance,
 		account.ID,
 	)
-	if err != nil {
-		return errors.Wrap(err, "failed to update account balance")
+	// CHeck positive balance constraint
+	if err != nil && strings.Contains(err.Error(), "constraint \"positive_balance\"") {
+		return &customerrors.InsufficientFundsError{}
+	} else if err != nil {
+		return &customerrors.InternalServerError{Message: err.Error()}
 	}
 	return nil
 }

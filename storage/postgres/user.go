@@ -4,8 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/pkg/errors"
-
+	"github.com/dilmurodov/online_banking/pkg/customerrors"
 	"github.com/dilmurodov/online_banking/pkg/models"
 	_ "github.com/lib/pq"
 )
@@ -57,9 +56,9 @@ func (u *userRepo) GetUserByID(ctx context.Context, req *models.GetUserByIDReque
 		&user.UpdatedAt,
 	)
 	if err != nil && err == sql.ErrNoRows {
-		return nil, errors.Wrap(err, "user not found")
+		return nil, &customerrors.UserNotFoundError{Guid: req.UserId}
 	} else if err != nil {
-		return nil, errors.Wrap(err, "error while getting user by id")
+		return nil, &customerrors.InternalServerError{Message: err.Error()}
 	}
 
 	resp.User = user
@@ -98,9 +97,9 @@ func (u *userRepo) GetUserPasswordByPhone(ctx context.Context, phone string) (re
 	)
 
 	if err != nil && err == sql.ErrNoRows {
-		return nil, errors.Wrap(err, "user not found")
+		return nil, &customerrors.UserNotFoundWithPhoneError{Phone: phone}
 	} else if err != nil {
-		return nil, errors.Wrap(err, "error while getting user by phone")
+		return nil, &customerrors.InternalServerError{Message: err.Error()}
 	}
 
 	return resp, nil
@@ -136,7 +135,7 @@ func (u *userRepo) CreateUser(ctx context.Context, req *models.CreateUserRequest
 		&resp.UpdatedAt,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "error while creating user")
+		return nil, &customerrors.InternalServerError{Message: err.Error()}
 	}
 
 	return resp, nil

@@ -39,15 +39,17 @@ func TestPayment_Transfer(t *testing.T) {
 
 	row2 := sqlmock.NewRows([]string{"guid", "user_id", "balance", "created_at", "updated_at"}).AddRow("TestAccountID2", "TestUserID", 200, "2021-01-01", "2021-01-01")
 
-	txrow := sqlmock.NewRows([]string{"guid", "account_id", "transaction_amount", "recipient_id", "transaction_type", "created_at"}).AddRow("TestTransactionID", "TestAccountID1", 100.0, "TestAccountID2", "debit", "2021-01-01")
+	txrow1 := sqlmock.NewRows([]string{"guid", "transaction_amount", "recipient_id", "transaction_type", "created_at"}).AddRow("TestTransactionID", 100.0, "TestAccountID2", "debit", "2021-01-01")
+
+	txrow2 := sqlmock.NewRows([]string{"guid", "transaction_amount", "recipient_id", "transaction_type", "created_at"}).AddRow("TestTransactionID2", 100.0, "TestAccountID1", "debit", "2021-01-01")
 
 	mock.ExpectQuery(`^SELECT (.+?) FROM accounts * `).WithArgs("TestAccountID1").WillReturnRows(row1)
 
 	mock.ExpectQuery(`^SELECT (.+?) FROM accounts * `).WithArgs("TestAccountID2").WillReturnRows(row2)
 
-	mock.ExpectPrepare("INSERT INTO transactions").ExpectQuery().WithArgs("TestAccountID1", 100.0, "TestAccountID2", "debit").WillReturnRows(txrow)
+	mock.ExpectPrepare("INSERT INTO transactions").ExpectQuery().WithArgs("TestAccountID1", 100.0, "TestAccountID2", "debit").WillReturnRows(txrow1)
 
-	mock.ExpectPrepare("INSERT INTO transactions").ExpectQuery().WithArgs("TestAccountID2", 100.0, "TestAccountID1", "credit").WillReturnRows(txrow)
+	mock.ExpectPrepare("INSERT INTO transactions").ExpectQuery().WithArgs("TestAccountID2", 100.0, "TestAccountID1", "credit").WillReturnRows(txrow2)
 	mock.ExpectCommit()
 
 	t.Run("SUCCESS", func(t *testing.T) {
@@ -70,6 +72,18 @@ func TestPayment_Transfer(t *testing.T) {
 			RecipientID: "TestAccountID2",
 		}
 
+		inTx1 := &models.Transaction{
+			ID:          "TestTransactionID",
+			AccountID:   "TestAccountID1",
+			RecipientID: "TestAccountID2",
+		}
+
+		inTx2 := &models.Transaction{
+			ID:          "TestTransactionID2",
+			AccountID:   "TestAccountID2",
+			RecipientID: "TestAccountID1",
+		}
+
 		req := &models.TransferRequest{
 			FromAccountID: "TestAccountID1",
 			ToAccountID:   "TestAccountID2",
@@ -86,9 +100,9 @@ func TestPayment_Transfer(t *testing.T) {
 			ID: "TestAccountID2",
 		}).Return(acc2, nil).Times(1).AnyTimes()
 
-		repoTx.EXPECT().CreateTransaction(ctx, tx, inTx).Return(inTx, nil).Times(1).AnyTimes()
+		repoTx.EXPECT().CreateTransaction(ctx, tx, inTx).Return(inTx1, nil).Times(1).AnyTimes()
 
-		repoTx.EXPECT().CreateTransaction(ctx, tx, inTx).Return(inTx, nil).Times(1).AnyTimes()
+		repoTx.EXPECT().CreateTransaction(ctx, tx, inTx).Return(inTx2, nil).Times(1).AnyTimes()
 
 		_, err = s.Transfer(ctx, req)
 		r.NoError(err)

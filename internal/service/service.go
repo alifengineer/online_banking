@@ -3,7 +3,7 @@ package service
 import (
 	"github.com/dilmurodov/online_banking/config"
 	"github.com/dilmurodov/online_banking/internal/service/account"
-	payment "github.com/dilmurodov/online_banking/internal/service/pament"
+	payment "github.com/dilmurodov/online_banking/internal/service/payment"
 	"github.com/dilmurodov/online_banking/internal/service/user"
 	"github.com/dilmurodov/online_banking/pkg/logger"
 	"github.com/dilmurodov/online_banking/storage"

@@ -12,7 +12,7 @@ import (
 func (s *Service) Transfer(ctx context.Context, req *models.TransferRequest) (resp *models.TransferResponse, err error) {
 	s.log.Info("---Transfer--->", logger.Any("req", req))
 	resp = &models.TransferResponse{}
-	
+
 	// Begin a database transaction for the transfer
 	tx, err := s.strg.TxRepo().BeginTx(ctx)
 	if err != nil {

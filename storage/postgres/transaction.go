@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/dilmurodov/online_banking/pkg/customerrors"
 	"github.com/dilmurodov/online_banking/pkg/models"
 	"github.com/dilmurodov/online_banking/pkg/util"
 	"github.com/lib/pq"
@@ -44,20 +45,17 @@ func (r *txRepo) CreateTransaction(ctx context.Context, tx *sql.Tx, transaction 
 			recipient_id, 
 			created_at`)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to prepare query")
+		return nil, &customerrors.InternalServerError{Message: err.Error()}
 	}
 	defer stmt.Close()
 
-	row, err := stmt.QueryContext(ctx,
+	row := stmt.QueryRowContext(ctx,
 		transaction.AccountID,
 		transaction.Amount,
 		transaction.RecipientID,
 		transaction.Type,
 	)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to execute query")
-	}
-	row.Scan(
+	err = row.Scan(
 		&resp.ID,
 		&resp.Amount,
 		&resp.Type,
@@ -65,7 +63,7 @@ func (r *txRepo) CreateTransaction(ctx context.Context, tx *sql.Tx, transaction 
 		&resp.CreatedAt,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to execute query")
+		return nil, &customerrors.InternalServerError{Message: err.Error()}
 	}
 	return resp, nil
 }
@@ -147,12 +145,12 @@ func (r *txRepo) GetTransactionsByAccountID(ctx context.Context, req *models.Get
 			&count,
 		)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to scan row")
+			return nil, &customerrors.InternalServerError{Message: err.Error()}
 		}
 		transactions = append(transactions, &t)
 	}
-	if err = rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "failed to scan rows")
+	if err != nil {
+		return nil, &customerrors.InternalServerError{Message: err.Error()}
 	}
 
 	return &models.GetTransactionsByAccountIDResponse{
@@ -191,11 +189,13 @@ func (r *txRepo) GetTransactionByID(ctx context.Context, req *models.GetTransact
 		&createdAt,
 	)
 	if err != nil && err == sql.ErrNoRows {
-		return nil, errors.Wrap(err, "transaction not found")
+		return nil, &customerrors.TransactionNotFoundError{Guid: req.ID}
+	} else if err != nil {
+		return nil, &customerrors.InternalServerError{Message: err.Error()}
 	}
 	t.CreatedAt = createdAt.String
 
-	return t, err
+	return t, nil
 }
 
 func (r *txRepo) GetTransactionsByIDS(ctx context.Context, req *models.GetTransactionsByIDSRequest) (resp *models.GetTransactionsByIDSResponse, err error) {
@@ -225,7 +225,7 @@ func (r *txRepo) GetTransactionsByIDS(ctx context.Context, req *models.GetTransa
 		req.AccountID,
 	)
 	if err != nil {
-		return nil, err
+		return nil, &customerrors.InternalServerError{Message: err.Error()}
 	}
 	defer rows.Close()
 
@@ -240,13 +240,13 @@ func (r *txRepo) GetTransactionsByIDS(ctx context.Context, req *models.GetTransa
 			&createdAt,
 		)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get transactions by ids")
+			return nil, &customerrors.InternalServerError{Message: err.Error()}
 		}
 		t.CreatedAt = createdAt.String
 		transactions = append(transactions, t)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "failed to get transactions by ids")
+		return nil, &customerrors.InternalServerError{Message: err.Error()}
 	}
 	resp.Transactions = transactions
 
@@ -270,11 +270,11 @@ func (r *txRepo) ApproveTransactions(ctx context.Context, tx *sql.Tx, req *model
 		req.AccountID,
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed to approve transactions")
+		return &customerrors.InternalServerError{Message: err.Error()}
 	}
 	if cn, err := result.RowsAffected(); err != nil || cn == 0 {
-		return errors.Wrap(err, "failed to approve transactions")
+		return &customerrors.TransactionNotFoundError{Guid: req.TransactionIDS[0]}
 	}
 
-	return err
+	return nil
 }
