@@ -57,10 +57,10 @@ func (s *Service) Transfer(ctx context.Context, req *models.TransferRequest) (re
 	}
 
 	creditTx := &models.Transaction{
-		AccountID:   toAccount.ID,
+		AccountID:   fromAccount.ID,
 		Amount:      req.Amount,
 		Type:        "credit",
-		RecipientID: fromAccount.ID,
+		RecipientID: toAccount.ID,
 	}
 
 	// Save the debit and credit transactions to the database
@@ -141,7 +141,6 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
 
 	// Get transactions
 	transactions, err := s.strg.TxRepo().GetTransactionsByIDS(ctx, &models.GetTransactionsByIDSRequest{
@@ -149,6 +148,7 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 		AccountID: req.AccountID,
 	})
 	if err != nil {
+		_ = tx.Rollback()
 		s.log.Error("failed to get transactions", logger.Error(err))
 		return fmt.Errorf("failed to get transactions: %w", err)
 	}
@@ -159,21 +159,25 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 			ID: v.AccountID,
 		})
 		if err != nil {
+			_ = tx.Rollback()
 			s.log.Error("failed to get from account", logger.Error(err))
 			return fmt.Errorf("failed to get from account: %w", err)
 		}
 
 		if v.Type == "credit" {
 			accnt.Balance += v.Amount
+			accnt.ID = v.RecipientID
 		}
 
 		if v.Type == "debit" {
 			accnt.Balance -= v.Amount
+			accnt.ID = v.AccountID
 		}
 
 		// Update the account balances in the database
 		err = s.strg.Account().UpdateAccountBalance(ctx, tx, accnt)
 		if err != nil {
+			_ = tx.Rollback()
 			s.log.Error("failed to update from account", logger.Error(err))
 			return fmt.Errorf("failed to update from account: %w", err)
 		}
@@ -184,6 +188,7 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 		AccountID:      req.AccountID,
 	})
 	if err != nil {
+		_ = tx.Rollback()
 		s.log.Error("failed to approve transactions", logger.Error(err))
 		return fmt.Errorf("failed to approve transactions: %w", err)
 	}
@@ -191,6 +196,7 @@ func (s *Service) CaptureTransactions(ctx context.Context, req *models.CaptureTr
 	// Commit the transaction
 	err = tx.Commit()
 	if err != nil {
+		_ = tx.Rollback()
 		s.log.Error("failed to commit transaction", logger.Error(err))
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}

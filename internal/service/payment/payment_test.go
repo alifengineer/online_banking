@@ -41,7 +41,7 @@ func TestPayment_Transfer(t *testing.T) {
 
 	txrow1 := sqlmock.NewRows([]string{"guid", "transaction_amount", "recipient_id", "transaction_type", "created_at"}).AddRow("TestTransactionID", 100.0, "TestAccountID2", "debit", "2021-01-01")
 
-	txrow2 := sqlmock.NewRows([]string{"guid", "transaction_amount", "recipient_id", "transaction_type", "created_at"}).AddRow("TestTransactionID2", 100.0, "TestAccountID1", "debit", "2021-01-01")
+	txrow2 := sqlmock.NewRows([]string{"guid", "transaction_amount", "recipient_id", "transaction_type", "created_at"}).AddRow("TestTransactionID2", 100.0, "TestAccountID2", "debit", "2021-01-01")
 
 	mock.ExpectQuery(`^SELECT (.+?) FROM accounts * `).WithArgs("TestAccountID1").WillReturnRows(row1)
 
@@ -49,7 +49,7 @@ func TestPayment_Transfer(t *testing.T) {
 
 	mock.ExpectPrepare("INSERT INTO transactions").ExpectQuery().WithArgs("TestAccountID1", 100.0, "TestAccountID2", "debit").WillReturnRows(txrow1)
 
-	mock.ExpectPrepare("INSERT INTO transactions").ExpectQuery().WithArgs("TestAccountID2", 100.0, "TestAccountID1", "credit").WillReturnRows(txrow2)
+	mock.ExpectPrepare("INSERT INTO transactions").ExpectQuery().WithArgs("TestAccountID1", 100.0, "TestAccountID2", "credit").WillReturnRows(txrow2)
 	mock.ExpectCommit()
 
 	t.Run("SUCCESS", func(t *testing.T) {
@@ -80,8 +80,8 @@ func TestPayment_Transfer(t *testing.T) {
 
 		inTx2 := &models.Transaction{
 			ID:          "TestTransactionID2",
-			AccountID:   "TestAccountID2",
-			RecipientID: "TestAccountID1",
+			AccountID:   "TestAccountID1",
+			RecipientID: "TestAccountID2",
 		}
 
 		req := &models.TransferRequest{
