@@ -71,8 +71,9 @@ func (r *txRepo) CreateTransaction(ctx context.Context, tx *sql.Tx, transaction 
 // GetTransactionsByAccountID returns all transactions associated with the given account ID
 func (r *txRepo) GetTransactionsByAccountID(ctx context.Context, req *models.GetTransactionsByAccountIDRequest) (*models.GetTransactionsByAccountIDResponse, error) {
 	var (
-		count  int
-		params = []interface{}{}
+		count         int
+		params        = []interface{}{}
+		doneTimestamp sql.NullString
 	)
 	transactions := make([]*models.Transaction, 0)
 
@@ -84,7 +85,10 @@ func (r *txRepo) GetTransactionsByAccountID(ctx context.Context, req *models.Get
 			transaction_type,
 			recipient_id, 
 			created_at,
-			count(1) filter (where deleted_at IS NULL) OVER() AS count
+			count(1) filter (where deleted_at IS NULL) OVER() AS count,
+			approved,
+			done,
+			done_timestamp
 		FROM transactions`
 
 	filter := ` WHERE account_id=$1 AND deleted_at IS NULL`
@@ -143,10 +147,14 @@ func (r *txRepo) GetTransactionsByAccountID(ctx context.Context, req *models.Get
 			&t.RecipientID,
 			&t.CreatedAt,
 			&count,
+			&t.Approved,
+			&t.Done,
+			&doneTimestamp,
 		)
 		if err != nil {
 			return nil, &customerrors.InternalServerError{Message: err.Error()}
 		}
+		t.DoneTimestamp = doneTimestamp.String
 		transactions = append(transactions, &t)
 	}
 	if err != nil {
@@ -161,7 +169,8 @@ func (r *txRepo) GetTransactionsByAccountID(ctx context.Context, req *models.Get
 
 func (r *txRepo) GetTransactionByID(ctx context.Context, req *models.GetTransactionByIDRequest) (*models.Transaction, error) {
 	var (
-		createdAt sql.NullString
+		createdAt     sql.NullString
+		doneTimestamp sql.NullString
 	)
 	t := &models.Transaction{}
 	query :=
@@ -171,7 +180,10 @@ func (r *txRepo) GetTransactionByID(ctx context.Context, req *models.GetTransact
 			transaction_amount,
 			transaction_type, 
 			recipient_id, 
-			created_at
+			created_at,
+			approved,
+			done,
+			done_timestamp
 		FROM transactions
 		WHERE guid=$1 AND account_id=$2 AND deleted_at IS NULL`
 
@@ -187,6 +199,9 @@ func (r *txRepo) GetTransactionByID(ctx context.Context, req *models.GetTransact
 		&t.Type,
 		&t.RecipientID,
 		&createdAt,
+		&t.Approved,
+		&t.Done,
+		&doneTimestamp,
 	)
 	if err != nil && err == sql.ErrNoRows {
 		return nil, &customerrors.TransactionNotFoundError{Guid: req.ID}
@@ -194,13 +209,15 @@ func (r *txRepo) GetTransactionByID(ctx context.Context, req *models.GetTransact
 		return nil, &customerrors.InternalServerError{Message: err.Error()}
 	}
 	t.CreatedAt = createdAt.String
+	t.DoneTimestamp = doneTimestamp.String
 
 	return t, nil
 }
 
 func (r *txRepo) GetTransactionsByIDS(ctx context.Context, req *models.GetTransactionsByIDSRequest) (resp *models.GetTransactionsByIDSResponse, err error) {
 	var (
-		createdAt sql.NullString
+		createdAt     sql.NullString
+		doneTimestamp sql.NullString
 	)
 	transactions := make([]*models.Transaction, 0)
 	resp = &models.GetTransactionsByIDSResponse{
@@ -214,7 +231,10 @@ func (r *txRepo) GetTransactionsByIDS(ctx context.Context, req *models.GetTransa
 			transaction_amount,
 			transaction_type, 
 			recipient_id, 
-			created_at
+			created_at,
+			approved,
+			done,
+			done_timestamp
 		FROM transactions
 		WHERE guid=ANY($1) AND account_id=$2 AND deleted_at IS NULL`
 
@@ -238,11 +258,15 @@ func (r *txRepo) GetTransactionsByIDS(ctx context.Context, req *models.GetTransa
 			&t.Type,
 			&t.RecipientID,
 			&createdAt,
+			&t.Approved,
+			&t.Done,
+			&doneTimestamp,
 		)
 		if err != nil {
 			return nil, &customerrors.InternalServerError{Message: err.Error()}
 		}
 		t.CreatedAt = createdAt.String
+		t.DoneTimestamp = doneTimestamp.String
 		transactions = append(transactions, t)
 	}
 	if err = rows.Err(); err != nil {

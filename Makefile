@@ -31,3 +31,6 @@ migration-down:
 
 mock:
 	mockgen -destination storage/mock/mock.go -source=storage/storage.go
+
+docker-build:
+	docker compose up --build -d

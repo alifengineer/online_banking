@@ -264,7 +264,7 @@ func TestPayment_CaptureTransactions(t *testing.T) {
 	mock.ExpectBegin()
 	row1 := sqlmock.NewRows([]string{"guid", "user_id", "balance", "created_at", "updated_at"}).AddRow("TestAccountID1", "TestUserID", 200, "2021-01-01", "2021-01-01")
 
-	txrow := sqlmock.NewRows([]string{"guid", "account_id", "transaction_amount", "transaction_type", "recipient_id", "created_at"}).AddRow("TestTransactionID", "TestAccountID1", 100.0, "debit", "TestAccountID1", "2021-01-01")
+	txrow := sqlmock.NewRows([]string{"guid", "account_id", "transaction_amount", "transaction_type", "recipient_id", "created_at", "approved", "done", "done_timestampe"}).AddRow("TestTransactionID", "TestAccountID1", 100.0, "debit", "TestAccountID1", "2021-01-01", true, true, "2021-01-01")
 
 	mock.ExpectQuery(`^SELECT (.+?) FROM transactions * `).WithArgs(pq.Array([]string{"TestTransactionID"}), "TestAccountID1").WillReturnRows(txrow)
 
@@ -304,9 +304,12 @@ func TestPayment_CaptureTransactions(t *testing.T) {
 		txsresp := &models.GetTransactionsByIDSResponse{
 			Transactions: []*models.Transaction{
 				{
-					ID:          "TestTransactionID",
-					AccountID:   "TestAccountID1",
-					RecipientID: "TestAccountID1",
+					ID:            "TestTransactionID",
+					AccountID:     "TestAccountID1",
+					RecipientID:   "TestAccountID1",
+					Approved:      true,
+					Done:          true,
+					DoneTimestamp: "2021-01-01",
 				},
 			},
 		}

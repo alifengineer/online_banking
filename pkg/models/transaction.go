@@ -1,14 +1,15 @@
 package models
 
 type Transaction struct {
-	ID          string  `json:"id"`
-	AccountID   string  `json:"account_id"`
-	RecipientID string  `json:"recipient_id"`
-	Amount      float64 `json:"amount"`
-	Type        string  `json:"type"`
-	CreatedAt   string  `json:"created_at"`
-	Approved    bool    `json:"approved"`
-	Done        bool    `json:"done"`
+	ID           string  `json:"id"`
+	AccountID    string  `json:"account_id"`
+	RecipientID  string  `json:"recipient_id"`
+	Amount       float64 `json:"amount"`
+	Type         string  `json:"type"`
+	CreatedAt    string  `json:"created_at"`
+	Approved     bool    `json:"approved"`
+	Done         bool    `json:"done"`
+	DoneTimestamp string  `json:"done_timestamp"`
 }
 
 type GetTransactionsByAccountIDRequest struct {

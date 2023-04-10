@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/dilmurodov/online_banking/api/http"
 	"github.com/dilmurodov/online_banking/config"
+	"github.com/dilmurodov/online_banking/pkg/customerrors"
 	"github.com/dilmurodov/online_banking/pkg/jwt"
 	"github.com/dilmurodov/online_banking/pkg/models"
 	"github.com/dilmurodov/online_banking/pkg/security"
@@ -41,9 +42,11 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 	}
 
 	_, err = h.services.UserService().GetUserPasswordByPhone(c.Request.Context(), user.Phone)
-	if err != nil && err.Error() != config.RECORD_NOT_FOUND {
-		h.handleResponse(c, http.InternalServerError, err.Error())
-		return
+	if err != nil {
+		if e, ok := err.(*customerrors.UserNotFoundWithPhoneError); !ok {
+			h.handleResponse(c, http.InternalServerError, e.Error())
+			return
+		}
 	}
 
 	hashedPassword, err := security.HashPassword(user.Password)

@@ -125,7 +125,7 @@ func TestAccount_GetAccountTransactions(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	r.NoError(err)
 
-	rows := mock.NewRows([]string{"guid", "account_id", "transaction_amount", "transaction_type", "recipient_id", "created_at", "count"}).AddRow("TestTransactionID", "TestUserID", 0.0, "TestType", "TestUserID", "2021-01-01", 1)
+	rows := mock.NewRows([]string{"guid", "account_id", "transaction_amount", "transaction_type", "recipient_id", "created_at", "count", "approved", "done", "done_timestampe"}).AddRow("TestTransactionID", "TestUserID", 0.0, "TestType", "TestUserID", "2021-01-01", 1, true, true, "2021-01-01")
 	mock.ExpectQuery(`^SELECT (.+?) FROM transactions * `).WithArgs("TestUserID").WillReturnRows(rows)
 
 	repo := mock_storage.NewMockTxRepoI(ctrl)
@@ -141,10 +141,13 @@ func TestAccount_GetAccountTransactions(t *testing.T) {
 		mockresp := &models.GetTransactionsByAccountIDResponse{
 			Transactions: []*models.Transaction{
 				{
-					ID:        "TestTransactionID",
-					AccountID: "TestUserID",
-					Amount:    0.0,
-					Type:      "TestType",
+					ID:            "TestTransactionID",
+					AccountID:     "TestUserID",
+					Amount:        0.0,
+					Type:          "TestType",
+					Approved:      true,
+					Done:          true,
+					DoneTimestamp: "2021-01-01",
 				},
 			},
 		}
@@ -168,7 +171,7 @@ func TestAccount_GetAccountTransactionByID(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	r.NoError(err)
 
-	rows := mock.NewRows([]string{"guid", "account_id", "transaction_amount", "transaction_type", "recipient_id", "created_at"}).AddRow("TestTransactionID", "TestUserID", 0.0, "TestType", "TestUserID", "2021-01-01")
+	rows := mock.NewRows([]string{"guid", "account_id", "transaction_amount", "transaction_type", "recipient_id", "created_at", "approved", "done", "done_timestampe"}).AddRow("TestTransactionID", "TestUserID", 0.0, "TestType", "TestUserID", "2021-01-01", true, true, "2021-01-01")
 	mock.ExpectQuery(`^SELECT (.+?) FROM transactions * `).WithArgs("TestTransactionID", "TestUserID").WillReturnRows(rows)
 
 	repo := mock_storage.NewMockTxRepoI(ctrl)
@@ -187,6 +190,9 @@ func TestAccount_GetAccountTransactionByID(t *testing.T) {
 			AccountID: "TestUserID",
 			Amount:    0.0,
 			Type:      "TestType",
+			Approved:  true,
+			Done:      true,
+			DoneTimestamp: "2021-01-01",
 		}
 
 		repo.EXPECT().GetTransactionByID(ctx, in).Return(mockresp, nil).Times(1).AnyTimes()

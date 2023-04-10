@@ -74,10 +74,7 @@ func (self *Service) GetUserPasswordByPhone(ctx context.Context, phone string) (
 	self.log.Info("---GetUserPasswordByPhone--->", logger.Any("phone", phone))
 
 	resp, err = self.strg.User().GetUserPasswordByPhone(ctx, phone)
-	if err != nil && err == sql.ErrNoRows {
-		self.log.Error("---GetUserPasswordByPhone--->GetUser", logger.Error(err))
-		return nil, fmt.Errorf(config.RECORD_NOT_FOUND)
-	} else if err != nil {
+	if err != nil {
 		self.log.Error("---GetUserPasswordByPhone--->GetUser", logger.Error(err))
 		return nil, err
 	}
