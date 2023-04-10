@@ -51,7 +51,7 @@ git clone
 ```
 2. Перейти в папку проекта
 ```
-cd online-banking-service
+cd online_banking
 ```
 3. Запустить проект
 
@@ -68,7 +68,7 @@ http://localhost:80/swagger/index.html
 
 1. Перейти в папку проекта
 ```
-cd online-banking-service
+cd online_banking
 ```
 2. Запустить тесты
 
